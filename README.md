@@ -6,7 +6,7 @@ This repo contains avarious base torch implementation of sequence models, such a
 
 <p align="center">
   <img src="figures/yolov1_demo.gif" alt="animated" />
-  <figcaption>Fig.1 - Real-time inference using YoloV1. </figcaption>
+  <figcaption>Fig.1 - Real-time inference using Yolo. </figcaption>
 </p>
 
 
