@@ -451,7 +451,7 @@ def moving_average(data, window_size):
 
     return moving_averages
 
-def compute_ema(data, alpha, window_size):
+def exponential_moving_average(data, alpha, window_size):
     if window_size <= 0:
         raise ValueError("Window size must be a positive integer.")
 
