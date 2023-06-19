@@ -441,10 +441,24 @@ def strip_square_brackets(pathtotxt):
     with open(pathtotxt, 'w') as my_file:
         my_file.write(text)
 
-def strip_square_brackets(pathtotxt):
-    with open(pathtotxt, 'r') as my_file:
-        text = my_file.read()
-        text = text.replace("[","")
-        text = text.replace("]","")
-    with open(pathtotxt, 'w') as my_file:
-        my_file.write(text)
+def moving_average(data, window_size):
+    if window_size <= 0:
+        raise ValueError("Window size must be a positive integer.")
+
+    cumulative_sum = np.cumsum(data, axis=1, dtype=float)
+    cumulative_sum[:, window_size:] = cumulative_sum[:, window_size:] - cumulative_sum[:, :-window_size]
+    moving_averages = cumulative_sum[:, window_size - 1:] / window_size
+
+    return moving_averages
+
+def compute_ema(data, alpha, window_size):
+    if window_size <= 0:
+        raise ValueError("Window size must be a positive integer.")
+
+    decay_factor = alpha / (1 + window_size)  # Calculate the decay factor based on alpha and window size
+    
+    ema = np.zeros_like(data)
+    ema[:, 0] = data[:, 0]
+    for i in range(1, data.shape[1]):
+        ema[:, i] = decay_factor * data[:, i] + (1 - decay_factor) * ema[:, i - 1]
+    return ema
