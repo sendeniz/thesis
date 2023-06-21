@@ -1,7 +1,7 @@
 import json
 import os
 import argparse
-parser = argparse.ArgumentParser(description='Test yolo data.')
+parser = argparse.ArgumentParser(description='Converts MS COCO json to Yolo txt format.')
 parser.add_argument('-j', help='JSON file', dest='json', required=True)
 parser.add_argument('-o', help='path to output folder', dest='out',required=True)
 parser.add_argument('-d', help='data split train, val or test', dest='data', required=True)
@@ -107,7 +107,7 @@ class COCO2YOLO:
 
     def _save_txt(self, anno_dict):
         for k, v in anno_dict.items():
-            file_name = "COCO_" + data + "2017_" + v[0][0].split(".")[0] + ".txt"
+            file_name = data + "2017_" + v[0][0].split(".")[0] + ".txt"
             with open(os.path.join(output, file_name), 'w', encoding='utf-8') as f:
                 print(k, v)
                 for obj in v:
