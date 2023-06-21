@@ -48,4 +48,4 @@ for file in data/coco/images/val2017/*.jpg; do     new_name="data/coco/images/va
 
 rmdir data/coco/images/train2017
 rmdir data/coco/images/val2017
-rmdir data/coco/labels/annotations
+rm -r  data/coco/labels/annotations
