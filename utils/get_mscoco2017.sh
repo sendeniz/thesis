@@ -37,7 +37,6 @@ rm annotations_trainval2017.zip
 #rm stuff_annotations_trainval2017.zip
 #rm image_info_test2017.zip
 #rm image_info_unlabeled2017.zip
-coco_json_to_yolo.py
 
 python utils/coco_json_to_yolo.py -d train -j data/coco/labels/annotations/instances_train2017.json -o data/coco/labels -d train
 python utils/coco_json_to_yolo.py -d val -j data/coco/labels/annotations/instances_val2017.json -o data/coco/labels -d val
