@@ -42,8 +42,11 @@ This repo contains avarious base torch implementation of sequence models, such a
     └── train_yolo.py 
 ├── utils                      	# Tools and utilities
     └── __init__.py
+    └── coco_json_to_yolo.py
+    └── create_csv.py
+    └── get_mscoco2017.sh
     └── graphs.py
-    └── utils.py  			
+    └── utils.py
 ├── requierments.txt           		# Python libraries
 ├── setup.py                   		
 ├── terminal.ipynb             		# If you want to run experiments from a notebook or on google collab
@@ -62,5 +65,5 @@ virtualenv -p python3 venv
 source venv/bin/activate
 pip install -e .
 ```
-Depending on what libraries you may already have, you may wish to `pip install -r requirements.txt`. To run our validation or sanity check experiments the MNIST data set is requiered, which torch will download for you, so there is nothing you need to do for. However, to train the video object detector from scratch, you will need 1) the MS COCO VOC and 2) ImageNet VID data-set. You can download [MS COCO VOC]([http://host.robots.ox.ac.uk/pascal/VOC/](https://cocodataset.org/#home)) manually or by call the following shell file: `utils/get_mscocovoc_data.sh`, which will automatically download and sort the data into the approriate folders and format for training. For [ImageNet VID]([https://www.image-net.org/)) you will have to sign up, request access and download the data by following the website guide. If you are on mac use the `utils/get_data_macos.sh` file. You may need to ensure that the shell file is executable by calling `chmod +x get_data.sh` and then executing it `./get_data.sh`.
+Depending on what libraries you may already have, you may wish to `pip install -r requirements.txt`. To run our validation or sanity check experiments the MNIST data set is requiered, which torch will download for you, so there is nothing you need to do for. However, to train the video object detector from scratch, you will need 1) the MS COCO VOC and 2) ImageNet VID data-set. You can download [MS COCO VOC]([http://host.robots.ox.ac.uk/pascal/VOC/](https://cocodataset.org/#home)) manually or by call the following shell file: `utils/get_mscocovoc_data.sh`, which will automatically download and sort the data into the approriate folders and format for training. For [ImageNet VID]([https://www.image-net.org/)) you will have to sign up, request access and download the data by following the website guide.
 
