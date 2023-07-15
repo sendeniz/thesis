@@ -9,7 +9,7 @@ import torch
 from torch import nn
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 import numpy as np
-from rnncells.hippo_cell import HippoLegSCell
+from cells.hippo_cell import HippoLegsCell
 
 class RnnCell(nn.Module):
     def __init__(self, input_size, hidden_size, activation="tanh"):

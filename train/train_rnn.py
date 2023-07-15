@@ -4,7 +4,7 @@ import torchvision
 import torchvision.transforms as T
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from models.rnncells import RnnCell, GruCell, LstmCell
+from cells.rnncells import RnnCell, GruCell, LstmCell
 from models.rnn import SimpleRNN, GruRNN, LstmRNN
 import torch.nn as nn
 import torch.nn.functional as F
@@ -100,26 +100,26 @@ def initialize_with_args(_arguments):
       arguments["init_simplernn"] = True
       arguments["lr"] = 0.00001
       arguments["current_model"] = model_names[0]
-      arguments["path_cpt_file"] = f'cpts/{arguments["current_model"]}smnist.cpt'
-      arguments["model_name"] = 'Simple RNN'
+      arguments["path_cpt_file"] = f'cpts/{arguments["current_model"]}rnn_smnist.cpt'
+      arguments["model_name"] = 'Simple Rnn'
     case "gru":
       arguments["init_grurnn"] = True
       arguments["lr"] = 0.00001
       arguments["current_model"]= model_names[1]
-      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}smnist.cpt'
-      arguments["model_name"]= 'GRU RNN'
+      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}rnn_smnist.cpt'
+      arguments["model_name"]= 'Gru Rnn'
     case "lstm":
       arguments["init_lstmrnn"] = True
       arguments["lr"]= 0.00001
       arguments["current_model"]= model_names[2]
-      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}smnist.cpt'
-      arguments["model_name"]= 'LSTM RNN'
+      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}rnn_smnist.cpt'
+      arguments["model_name"]= 'Lstm Rnn'
     case "hippo":
       arguments["init_hippornn"] = True
       arguments["lr"]= 0.00001
       arguments["current_model"]= model_names[3]
-      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}smnist.cpt'
-      arguments["model_name"]= 'HIPPO RNN'
+      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}hippo_smnist.cpt'
+      arguments["model_name"]= 'Simple Hippo'
 
   match arguments["dataset_name"]:
     case "smnist":
@@ -145,7 +145,7 @@ def train(train_loader, model, optimizer, loss_f):
     for batch_idx, (x, y) in enumerate(train_loader):
         x, y = x.to(device), y.to(device)
         # turn [64, 784] to [64, 784, 784]
-        x_expanded = x[:, None, ...].expand(x.shape[0], x.shape[1], x.shape[1]).to(device)
+        x_expanded = x.unsqueeze(-1) # x[:, None, ...].expand(x.shape[0], x.shape[1], x.shape[1]).to(device)
         out = model(x_expanded)
         del x
         class_prob = F.softmax(out, dim = 1)
@@ -172,7 +172,7 @@ def evaluate (data_loader, model, loss_f):
     with torch.no_grad():
         for batch_idx, (x, y) in enumerate(data_loader):
             x, y = x.to(device), y.to(device)
-            x_expanded = x[:, None, ...].expand(x.shape[0], x.shape[1], x.shape[1]).to(device)
+            x_expanded = x.unsqueeze(-1) #x[:, None, ...].expand(x.shape[0], x.shape[1], x.shape[1]).to(device)
             out = model(x_expanded)
             del x, x_expanded
             class_prob = F.softmax(out, dim = 1)
@@ -203,7 +203,7 @@ def main(arguments):
     test_top5acc_lst = []
 
     continue_training = arguments["continue_training"]
-
+    print(continue_training)
     # if we continue training extract last epoch and last run from checkpoint
     if continue_training == True:
         checkpoint = torch.load(arguments["path_cpt_file"], map_location = device)
@@ -211,21 +211,21 @@ def main(arguments):
         last_run = checkpoint['run']
         print(f"Continue training from run: {last_run + 1} and epoch: {last_epoch + 1}.")
   
-        strip_square_brackets(f"results/{arguments['current_model']}train_loss_run{last_run + 1}.txt")
-        strip_square_brackets(f"results/{arguments['current_model']}train_top1acc_run{last_run + 1}.txt")
-        strip_square_brackets(f"results/{arguments['current_model']}train_top5acc_run{last_run + 1}.txt")
+        strip_square_brackets(f"results/{arguments['current_model']}rnn_train_loss_run{last_run + 1}.txt")
+        strip_square_brackets(f"results/{arguments['current_model']}rnn_train_top1acc_run{last_run + 1}.txt")
+        strip_square_brackets(f"results/{arguments['current_model']}rnn_train_top5acc_run{last_run + 1}.txt")
             
-        strip_square_brackets(f"results/{arguments['current_model']}test_loss_run{last_run + 1}.txt")
-        strip_square_brackets(f"results/{arguments['current_model']}test_top1acc_run{last_run + 1}.txt")
-        strip_square_brackets(f"results/{arguments['current_model']}test_top5acc_run{last_run + 1}.txt")
+        strip_square_brackets(f"results/{arguments['current_model']}rnn_test_loss_run{last_run + 1}.txt")
+        strip_square_brackets(f"results/{arguments['current_model']}rnn_test_top1acc_run{last_run + 1}.txt")
+        strip_square_brackets(f"results/{arguments['current_model']}rnn_test_top5acc_run{last_run + 1}.txt")
 
-        train_loss_lst = list(genfromtxt(f"results/{arguments['current_model']}train_loss_run{last_run + 1}.txt", delimiter=','))
-        train_top1acc_lst = list(genfromtxt(f"results/{arguments['current_model']}train_top1acc_run{last_run + 1}.txt", delimiter=','))
-        train_top5acc_lst = list(genfromtxt(f"results/{arguments['current_model']}train_top5acc_run{last_run + 1}.txt", delimiter=','))
+        train_loss_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_train_loss_run{last_run + 1}.txt", delimiter=','))
+        train_top1acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_train_top1acc_run{last_run + 1}.txt", delimiter=','))
+        train_top5acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_train_top5acc_run{last_run + 1}.txt", delimiter=','))
 
-        test_loss_lst = list(genfromtxt(f"results/{arguments['current_model']}test_loss_run{last_run + 1}.txt", delimiter=','))
-        test_top1acc_lst = list(genfromtxt(f"results/{arguments['current_model']}test_top1acc_run{last_run + 1}.txt", delimiter=','))
-        test_top5acc_lst = list(genfromtxt(f"results/{arguments['current_model']}test_top5acc_run{last_run + 1}.txt", delimiter=','))
+        test_loss_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_test_loss_run{last_run + 1}.txt", delimiter=','))
+        test_top1acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_test_top1acc_run{last_run + 1}.txt", delimiter=','))
+        test_top5acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_test_top5acc_run{last_run + 1}.txt", delimiter=','))
 
     for run in range(last_run, nruns):
         # within the run loop if we continue training we initalise model and 
@@ -336,18 +336,18 @@ def main(arguments):
                     'optimizer_state_dict': optimizer.state_dict()
                     }, arguments["path_cpt_file"])
                 print(f"Checkpoint and evaluation at epoch {epoch + 1} stored")
-                with open(f'results/{arguments["current_model"]}train_loss_run{run + 1}.txt','w') as values:
+                with open(f'results/{arguments["current_model"]}rnn_train_loss_run{run + 1}.txt','w') as values:
                     values.write(str(train_loss_lst))
-                with open(f'results/{arguments["current_model"]}train_top1acc_run{run + 1}.txt','w') as values:
+                with open(f'results/{arguments["current_model"]}rnn_train_top1acc_run{run + 1}.txt','w') as values:
                     values.write(str(train_top1acc_lst))
-                with open(f'results/{arguments["current_model"]}train_top5acc_run{run + 1}.txt','w') as values:
+                with open(f'results/{arguments["current_model"]}rnn_train_top5acc_run{run + 1}.txt','w') as values:
                     values.write(str(train_top5acc_lst))
 
-                with open(f'results/{arguments["current_model"]}test_loss_run{run + 1}.txt','w') as values:
+                with open(f'results/{arguments["current_model"]}rnn_test_loss_run{run + 1}.txt','w') as values:
                     values.write(str(test_loss_lst))
-                with open(f'results/{arguments["current_model"]}test_top1acc_run{run + 1}.txt','w') as values:
+                with open(f'results/{arguments["current_model"]}rnn_test_top1acc_run{run + 1}.txt','w') as values:
                     values.write(str(test_top1acc_lst))
-                with open(f'results/{arguments["current_model"]}test_top5acc_run{run + 1}.txt','w') as values:
+                with open(f'results/{arguments["current_model"]}rnn_test_top5acc_run{run + 1}.txt','w') as values:
                     values.write(str(test_top5acc_lst))
             
             # if epoch has reached last epoch reset last_epoch variable to zero

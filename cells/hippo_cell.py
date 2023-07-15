@@ -1,3 +1,7 @@
+import torch
+import torch.nn as nn
+import torch.nn.Functional a F
+
 class HippoLegsCell(nn.Module):
     '''
     Hippo class utilizing legs polynomial

@@ -8,7 +8,7 @@ Created on Sat Sep 24 22:52:13 2022
 import torch
 from torch import nn
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-from rnncells.rnncells import RnnCell, GruCell, LstmCell
+from cells.rnncells import RnnCell, GruCell, LstmCell
 import numpy as np
 
 class SimpleRNN(nn.Module):
@@ -69,12 +69,12 @@ class SimpleRNN(nn.Module):
             for layer in range(self.num_layers):
 
                 if layer == 0:
-                    hidden_l = self.rnn_cell_list[layer](input[:, t, :], hidden[layer])
+                    hidden_l = self.rnn_cell_list[layer](input[:, t, :], (hidden[layer][0], hidden[layer][1]))
                 else:
-                    hidden_l = self.rnn_cell_list[layer](hidden[layer - 1], hidden[layer])
+                    hidden_l = self.rnn_cell_list[layer](hidden[layer - 1][0], (hidden[layer][0], hidden[layer][1]))
                 hidden[layer] = hidden_l
 
-            outs.append(hidden_l)
+            outs.append(hidden_l[0])
 
         # select last time step indexed at [-1]
         out = outs[-1].squeeze()
@@ -121,13 +121,13 @@ class GruRNN(nn.Module):
             for layer in range(self.num_layers):
 
                 if layer == 0:
-                    hidden_l = self.rnn_cell_list[layer](input[:, t, :], hidden[layer])
+                    hidden_l = self.rnn_cell_list[layer](input[:, t, :], (hidden[layer][0], hidden[layer][1]))
                 
                 else:
-                    hidden_l = self.rnn_cell_list[layer](hidden[layer - 1],hidden[layer])
+                    hidden_l = self.rnn_cell_list[layer](hidden[layer - 1][0], (hidden[layer][0], hidden[layer][1]))
                 hidden[layer] = hidden_l
 
-            outs.append(hidden_l)
+            outs.append(hidden_l[0])
 
         # select last time step indexed at [-1]
         out = outs[-1].squeeze()
