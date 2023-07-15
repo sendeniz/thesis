@@ -1,10 +1,10 @@
-class HIPPO_LEGS_CELL(nn.Module):
+class HippoLegsCell(nn.Module):
     '''
     Hippo class utilizing legs polynomial
     '''
 
     def __init__(self, N, gbt_alpha = 0.5, maxlength = 1024, reconst = False):
-        super(HIPPO_LEGS_CELL, self).__init__()
+        super(HippoLegsCell, self).__init__()
         self.N = N
         self.gbt_alpha = gbt_alpha
         self.maxlength = maxlength
