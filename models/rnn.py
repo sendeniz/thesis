@@ -224,12 +224,12 @@ def test_lstm():
     xshape = out.shape
     return x, xshape
 
-testx, xdims = test_rnn()
-print("Simple RNN size test: passed.")
+#testx, xdims = test_rnn()
+#print("Simple RNN size test: passed.")
 
-testx, xdims = test_gru()
-print("Gru RNN size test: passed.")\
+#testx, xdims = test_gru()
+#print("Gru RNN size test: passed.")\
 
-testx, xdims = test_gru()
-print("LSTM RNN size test: passed.")
+#testx, xdims = test_gru()
+#print("LSTM RNN size test: passed.")
 

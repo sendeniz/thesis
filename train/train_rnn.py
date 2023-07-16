@@ -6,6 +6,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from cells.rnncells import RnnCell, GruCell, LstmCell
 from models.rnn import SimpleRNN, GruRNN, LstmRNN
+from models.hippo import Hippo
 import torch.nn as nn
 import torch.nn.functional as F
 from utils.utils import top1accuracy, top5accuracy, strip_square_brackets
@@ -24,7 +25,16 @@ data_dir =  'data/'
 model_names = ['simple', 
                 'gru',
                 'lstm',
-                'hippo']
+                'hippo',
+                'hippornn']
+
+trains_normal = ['Simple Rnn', 
+                'Gru Rnn',
+                'Lstm Rnn']
+
+trains_hippo = ['Simple Hippo',
+                'Hippo Rnn']
+
 
 dataset_names = ['smnist',
                 'mnist'
@@ -44,6 +54,7 @@ intTypes = [
   "nepochs",
   "nruns",
   "warmup",
+  "N",
 ]
 
 boolTypes = [
@@ -67,9 +78,11 @@ def initialize_with_args(_arguments):
       "nepochs": 100,
       "nruns": 5,
       "warmup": 5,
+      "N": 128,
       "init_simplernn": False,
       "init_grurnn": False,
       "init_lstmrnn": False,
+      "init_hippo": False,
       "init_hippornn": False,
       "mnist": False,
       "cifar10": False,
@@ -86,7 +99,11 @@ def initialize_with_args(_arguments):
     if key in intTypes:
       arguments[key] = int(value)
     if key in boolTypes:
-      arguments[key] = bool(value)
+      if value == "False":
+        arguments[key] = False
+      if value == "True":
+        arguments[key] = True
+         
 
   if arguments["model_name"] not in model_names:
     print(f"model name {arguments['model_name']} was not found, use simple, gru, lstm or hippo")
@@ -120,6 +137,12 @@ def initialize_with_args(_arguments):
       arguments["current_model"]= model_names[3]
       arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}hippo_smnist.cpt'
       arguments["model_name"]= 'Simple Hippo'
+    case "hippornn":
+      arguments["init_hippornn"] = True
+      arguments["lr"]= 0.00001
+      arguments["current_model"]= model_names[4]
+      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}hippornn_smnist.cpt'
+      arguments["model_name"]= 'Hippo Rnn'
 
   match arguments["dataset_name"]:
     case "smnist":
@@ -129,6 +152,7 @@ def initialize_with_args(_arguments):
     case "cifar10":
       arguments["cifar10"] = True
 
+  #print(arguments)
   main(arguments)
 
 def train(train_loader, model, optimizer, loss_f):
@@ -145,8 +169,8 @@ def train(train_loader, model, optimizer, loss_f):
     for batch_idx, (x, y) in enumerate(train_loader):
         x, y = x.to(device), y.to(device)
         # turn [64, 784] to [64, 784, 784]
-        x_expanded = x.unsqueeze(-1) # x[:, None, ...].expand(x.shape[0], x.shape[1], x.shape[1]).to(device)
-        out = model(x_expanded)
+        x =  x[:, None, ...].expand(x.shape[0], x.shape[1], x.shape[1]).to(device)
+        out = model(x)
         del x
         class_prob = F.softmax(out, dim = 1)
         loss_val = loss_f(class_prob, y)
@@ -172,7 +196,7 @@ def evaluate (data_loader, model, loss_f):
     with torch.no_grad():
         for batch_idx, (x, y) in enumerate(data_loader):
             x, y = x.to(device), y.to(device)
-            x_expanded = x.unsqueeze(-1) #x[:, None, ...].expand(x.shape[0], x.shape[1], x.shape[1]).to(device)
+            x = x[:, None, ...].expand(x.shape[0], x.shape[1], x.shape[1]).to(device)
             out = model(x_expanded)
             del x, x_expanded
             class_prob = F.softmax(out, dim = 1)
@@ -190,42 +214,120 @@ def evaluate (data_loader, model, loss_f):
         top5_acc = round(sum(top5_acc_lst) / len(top5_acc_lst), 4)
         return (loss_val, top1_acc, top5_acc)
 
+
+def trainhippo(data_loader, model, optimizer, loss_f):
+    """
+    Input: train loader (torch loader), model (torch model), optimizer (torch optimizer)
+          loss function (torch custom yolov1 loss).
+    Output: loss (torch float).
+    """
+    loss_lst = []
+    top1_acc_lst = []
+    top5_acc_lst = []
+    model.train()
+    for batch_idx, (x, y) in enumerate(data_loader):
+        x, y = x.to(device), y.to(device)
+        x = x.T.unsqueeze(-1).unsqueeze(-1).to(device)
+        out, rec = model(x)
+        del x
+        class_prob = F.softmax(out, dim = 1)
+        pred = torch.argmax(class_prob, dim = 1)
+        loss_val = loss_f(class_prob, y)
+        loss_lst.append(float(loss_val.item()))
+        top1_acc_val = top1accuracy(class_prob, y)
+        top5_acc_val = top5accuracy(class_prob, y)
+        top1_acc_lst.append(float(top1_acc_val))
+        top5_acc_lst.append(float(top5_acc_val))
+        del y, out
+        optimizer.zero_grad()
+        loss_val.backward()
+        optimizer.step()
+        del loss_val
+    return None
+
+def evaluatehippo(data_loader, model, loss_f):
+    """
+    Input: train loader (torch loader), model (torch model), optimizer (torch optimizer)
+          loss function (torch custom yolov1 loss).
+    Output: loss (torch float).
+    """
+    loss_lst = []
+    top1_acc_lst = []
+    top5_acc_lst = []
+    model.eval()
+    for batch_idx, (x, y) in enumerate(data_loader):
+        x, y = x.to(device), y.to(device)
+        x = x.T.unsqueeze(-1).unsqueeze(-1).to(device)
+        out, rec = model(x)
+        del x
+        class_prob = F.softmax(out, dim = 1)
+        pred = torch.argmax(class_prob, dim = 1)
+        loss_val = loss_f(class_prob, y)
+        loss_lst.append(float(loss_val.item()))
+        top1_acc_val = top1accuracy(class_prob, y)
+        top5_acc_val = top5accuracy(class_prob, y)
+        top1_acc_lst.append(float(top1_acc_val))
+        top5_acc_lst.append(float(top5_acc_val))
+        del y, out
+
+    # compute average loss
+    loss_val = round(sum(loss_lst) / len(loss_lst), 4)
+    top1_acc = round(sum(top1_acc_lst) / len(top1_acc_lst),  4)
+    top5_acc = round(sum(top5_acc_lst) / len(top5_acc_lst), 4)
+    return (loss_val, top1_acc, top5_acc)
+
 def main(arguments):
     last_run = 0
     last_epoch = 0
     train_loss_lst = []
     test_loss_lst = []
-    train_acc_lst = []
-    test_acc_lst = []
     train_top1acc_lst = []
     test_top1acc_lst = []
     train_top5acc_lst = []
     test_top5acc_lst = []
 
     continue_training = arguments["continue_training"]
-    print(continue_training)
     # if we continue training extract last epoch and last run from checkpoint
     if continue_training == True:
         checkpoint = torch.load(arguments["path_cpt_file"], map_location = device)
         last_epoch = checkpoint['epoch']
         last_run = checkpoint['run']
         print(f"Continue training from run: {last_run + 1} and epoch: {last_epoch + 1}.")
-  
-        strip_square_brackets(f"results/{arguments['current_model']}rnn_train_loss_run{last_run + 1}.txt")
-        strip_square_brackets(f"results/{arguments['current_model']}rnn_train_top1acc_run{last_run + 1}.txt")
-        strip_square_brackets(f"results/{arguments['current_model']}rnn_train_top5acc_run{last_run + 1}.txt")
-            
-        strip_square_brackets(f"results/{arguments['current_model']}rnn_test_loss_run{last_run + 1}.txt")
-        strip_square_brackets(f"results/{arguments['current_model']}rnn_test_top1acc_run{last_run + 1}.txt")
-        strip_square_brackets(f"results/{arguments['current_model']}rnn_test_top5acc_run{last_run + 1}.txt")
+        
+        if arguments['model_name'] in trains_normal:
+            strip_square_brackets(f"results/{arguments['current_model']}rnn_train_loss_run{last_run + 1}.txt")
+            strip_square_brackets(f"results/{arguments['current_model']}rnn_train_top1acc_run{last_run + 1}.txt")
+            strip_square_brackets(f"results/{arguments['current_model']}rnn_train_top5acc_run{last_run + 1}.txt")
+                
+            strip_square_brackets(f"results/{arguments['current_model']}rnn_test_loss_run{last_run + 1}.txt")
+            strip_square_brackets(f"results/{arguments['current_model']}rnn_test_top1acc_run{last_run + 1}.txt")
+            strip_square_brackets(f"results/{arguments['current_model']}rnn_test_top5acc_run{last_run + 1}.txt")
 
-        train_loss_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_train_loss_run{last_run + 1}.txt", delimiter=','))
-        train_top1acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_train_top1acc_run{last_run + 1}.txt", delimiter=','))
-        train_top5acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_train_top5acc_run{last_run + 1}.txt", delimiter=','))
+            train_loss_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_train_loss_run{last_run + 1}.txt", delimiter=','))
+            train_top1acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_train_top1acc_run{last_run + 1}.txt", delimiter=','))
+            train_top5acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_train_top5acc_run{last_run + 1}.txt", delimiter=','))
 
-        test_loss_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_test_loss_run{last_run + 1}.txt", delimiter=','))
-        test_top1acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_test_top1acc_run{last_run + 1}.txt", delimiter=','))
-        test_top5acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_test_top5acc_run{last_run + 1}.txt", delimiter=','))
+            test_loss_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_test_loss_run{last_run + 1}.txt", delimiter=','))
+            test_top1acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_test_top1acc_run{last_run + 1}.txt", delimiter=','))
+            test_top5acc_lst = list(genfromtxt(f"results/{arguments['current_model']}rnn_test_top5acc_run{last_run + 1}.txt", delimiter=','))
+        
+        if arguments['model_name'] in trains_hippo:
+
+            strip_square_brackets(f"results/{arguments['current_model']}_train_loss_run{last_run + 1}.txt")
+            strip_square_brackets(f"results/{arguments['current_model']}_train_top1acc_run{last_run + 1}.txt")
+            strip_square_brackets(f"results/{arguments['current_model']}_train_top5acc_run{last_run + 1}.txt")
+                
+            strip_square_brackets(f"results/{arguments['current_model']}_test_loss_run{last_run + 1}.txt")
+            strip_square_brackets(f"results/{arguments['current_model']}_test_top1acc_run{last_run + 1}.txt")
+            strip_square_brackets(f"results/{arguments['current_model']}_test_top5acc_run{last_run + 1}.txt")
+
+            train_loss_lst = list(genfromtxt(f"results/{arguments['current_model']}train_loss_run{last_run + 1}.txt", delimiter=','))
+            train_top1acc_lst = list(genfromtxt(f"results/{arguments['current_model']}train_top1acc_run{last_run + 1}.txt", delimiter=','))
+            train_top5acc_lst = list(genfromtxt(f"results/{arguments['current_model']}train_top5acc_run{last_run + 1}.txt", delimiter=','))
+
+            test_loss_lst = list(genfromtxt(f"results/{arguments['current_model']}test_loss_run{last_run + 1}.txt", delimiter=','))
+            test_top1acc_lst = list(genfromtxt(f"results/{arguments['current_model']}test_top1acc_run{last_run + 1}.txt", delimiter=','))
+            test_top5acc_lst = list(genfromtxt(f"results/{arguments['current_model']}test_top5acc_run{last_run + 1}.txt", delimiter=','))
 
     for run in range(last_run, nruns):
         # within the run loop if we continue training we initalise model and 
@@ -240,12 +342,23 @@ def main(arguments):
             
             elif arguments["init_lstmrnn"] == True:
                  model = LstmRNN(input_size = arguments['input_size']**2, hidden_size = arguments["hidden_size"], num_layers = arguments["nlayers"], output_size = 10).to(device)
-            
+
+            elif arguments["init_hippo"] == True:
+                 model = Hippo(N = arguments['N'], maxlength = arguments['input_size']**2, output_size = 10).to(device)
+
+            elif arguments["init_hippornn"] == True:
+                model = Hippo(N = arguments['N'], maxlength = arguments['input_size']**2, output_size = 10).to(device)
+
             optimizer = optim.Adam(model.parameters(), lr = arguments["lr"], weight_decay = arguments["weight_decay"])
             checkpoint = torch.load(arguments["path_cpt_file"], map_location = device)
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            print(f'Run {run + 1}/{nruns}: {arguments["model_name"]} from a previous checkpoint initalised with {arguments["nlayers"]} layers and {arguments["hidden_size"]} number of hidden neurons.')
+            
+            if arguments['model_name'] in trains_normal:
+                print(f'Run {run + 1}/{nruns}: {arguments["model_name"]} from a previous checkpoint initalised with {arguments["nlayers"]} layers and {arguments["hidden_size"]} number of hidden neurons.')
+
+            if arguments['model_name'] in trains_hippo:
+                print(f'Run {run + 1}/{nruns}: {arguments["model_name"]} from a previous checkpoint initalised with {arguments["N"]} number of coefficents.')
         
         elif continue_training == False:
             
@@ -258,15 +371,25 @@ def main(arguments):
             elif arguments["init_lstmrnn"] == True:
                  model = LstmRNN(input_size = arguments['input_size']**2, hidden_size = arguments["hidden_size"], num_layers = arguments["nlayers"], output_size = 10).to(device)
             
+            elif arguments["init_hippo"] == True:
+                 model = Hippo(N = arguments['N'], maxlength = arguments['input_size']**2, output_size = 10).to(device)
+
+            elif arguments["init_hippornn"] == True:
+                model = Hippo(N = arguments['N'], maxlength = arguments['input_size']**2, output_size = 10).to(device)
+
             optimizer = optim.Adam(model.parameters(), lr = arguments["lr"], weight_decay = arguments["weight_decay"])
-            print(f'Run {run + 1}/{nruns}: {arguments["model_name"]} initalised with {arguments["nlayers"]} layers and {arguments["hidden_size"]} number of hidden neurons.')
+
+            if arguments['model_name'] in trains_normal:
+                print(f'Run {run + 1}/{nruns}: {arguments["model_name"]} initalised with {arguments["nlayers"]} layers and {arguments["hidden_size"]} number of hidden neurons.')
+
+            if arguments['model_name'] in trains_hippo:
+                print(f'Run {run + 1}/{nruns}: {arguments["model_name"]} initalised with {arguments["N"]} number of coefficents.')
+
 
             # ensure that lists are empty when a new model is initalised so
             # that lists from a previous run do not interfere with storage
             train_loss_lst = []
             test_loss_lst = []
-            train_acc_lst = []
-            test_acc_lst = []
             train_top1acc_lst = []
             test_top1acc_lst = []
             train_top5acc_lst = []
@@ -312,18 +435,35 @@ def main(arguments):
             elif epoch + last_epoch > arguments["warmup"]:
                 scheduler.step()
 
-            # train 
-            train(train_loader, model, optimizer, loss_f)
-            train_loss_value, train_top1acc_value, train_top5acc_value = evaluate(train_loader, model, loss_f)
-            train_loss_lst.append(train_loss_value)
-            train_top1acc_lst.append(train_top1acc_value)
-            train_top5acc_lst.append(train_top5acc_value)
+
+            if arguments['model_name'] in trains_normal:
+                # train
+                train(train_loader, model, optimizer, loss_f)
+                train_loss_value, train_top1acc_value, train_top5acc_value = evaluate(train_loader, model, loss_f)
+                train_loss_lst.append(train_loss_value)
+                train_top1acc_lst.append(train_top1acc_value)
+                train_top5acc_lst.append(train_top5acc_value)
             
-            # test 
-            test_loss_value, test_top1acc_value, test_top5acc_value = evaluate(test_loader, model, loss_f)
-            test_loss_lst.append(test_loss_value)
-            test_top1acc_lst.append(test_top1acc_value)
-            test_top5acc_lst.append(test_top5acc_value)
+                # test 
+                test_loss_value, test_top1acc_value, test_top5acc_value = evaluate(test_loader, model, loss_f)
+                test_loss_lst.append(test_loss_value)
+                test_top1acc_lst.append(test_top1acc_value)
+                test_top5acc_lst.append(test_top5acc_value)
+            
+
+            if arguments['model_name'] in trains_hippo:
+                # train 
+                trainhippo(train_loader, model, optimizer, loss_f)
+                train_loss_value, train_top1acc_value, train_top5acc_value = evaluatehippo(train_loader, model, loss_f)
+                train_loss_lst.append(train_loss_value)
+                train_top1acc_lst.append(train_top1acc_value)
+                train_top5acc_lst.append(train_top5acc_value)
+              
+                # test 
+                test_loss_value, test_top1acc_value, test_top5acc_value = evaluatehippo(test_loader, model, loss_f)
+                test_loss_lst.append(test_loss_value)
+                test_top1acc_lst.append(test_top1acc_value)
+                test_top5acc_lst.append(test_top5acc_value) 
             
             print(f"Epoch:{epoch + 1}   Train[Loss:{train_loss_value} Top1 Acc:{train_top1acc_value}  Top5 Acc:{train_top5acc_value}]")
             print(f"Epoch:{epoch + 1}   Test[Loss:{test_loss_value}   Top1 Acc:{test_top1acc_value}   Top5 Acc:{test_top5acc_value}]")
@@ -336,20 +476,37 @@ def main(arguments):
                     'optimizer_state_dict': optimizer.state_dict()
                     }, arguments["path_cpt_file"])
                 print(f"Checkpoint and evaluation at epoch {epoch + 1} stored")
-                with open(f'results/{arguments["current_model"]}rnn_train_loss_run{run + 1}.txt','w') as values:
-                    values.write(str(train_loss_lst))
-                with open(f'results/{arguments["current_model"]}rnn_train_top1acc_run{run + 1}.txt','w') as values:
-                    values.write(str(train_top1acc_lst))
-                with open(f'results/{arguments["current_model"]}rnn_train_top5acc_run{run + 1}.txt','w') as values:
-                    values.write(str(train_top5acc_lst))
+                
+                if arguments['model_name'] in trains_normal:
+                    with open(f'results/{arguments["current_model"]}rnn_train_loss_run{run + 1}.txt','w') as values:
+                        values.write(str(train_loss_lst))
+                    with open(f'results/{arguments["current_model"]}rnn_train_top1acc_run{run + 1}.txt','w') as values:
+                        values.write(str(train_top1acc_lst))
+                    with open(f'results/{arguments["current_model"]}rnn_train_top5acc_run{run + 1}.txt','w') as values:
+                        values.write(str(train_top5acc_lst))
 
-                with open(f'results/{arguments["current_model"]}rnn_test_loss_run{run + 1}.txt','w') as values:
-                    values.write(str(test_loss_lst))
-                with open(f'results/{arguments["current_model"]}rnn_test_top1acc_run{run + 1}.txt','w') as values:
-                    values.write(str(test_top1acc_lst))
-                with open(f'results/{arguments["current_model"]}rnn_test_top5acc_run{run + 1}.txt','w') as values:
-                    values.write(str(test_top5acc_lst))
-            
+                    with open(f'results/{arguments["current_model"]}rnn_test_loss_run{run + 1}.txt','w') as values:
+                        values.write(str(test_loss_lst))
+                    with open(f'results/{arguments["current_model"]}rnn_test_top1acc_run{run + 1}.txt','w') as values:
+                        values.write(str(test_top1acc_lst))
+                    with open(f'results/{arguments["current_model"]}rnn_test_top5acc_run{run + 1}.txt','w') as values:
+                        values.write(str(test_top5acc_lst))
+                
+                if arguments['model_name'] in trains_hippo:
+                    with open(f'results/{arguments["current_model"]}train_loss_run{run + 1}.txt','w') as values:
+                        values.write(str(train_loss_lst))
+                    with open(f'results/{arguments["current_model"]}train_top1acc_run{run + 1}.txt','w') as values:
+                        values.write(str(train_top1acc_lst))
+                    with open(f'results/{arguments["current_model"]}train_top5acc_run{run + 1}.txt','w') as values:
+                        values.write(str(train_top5acc_lst))
+
+                    with open(f'results/{arguments["current_model"]}test_loss_run{run + 1}.txt','w') as values:
+                        values.write(str(test_loss_lst))
+                    with open(f'results/{arguments["current_model"]}test_top1acc_run{run + 1}.txt','w') as values:
+                        values.write(str(test_top1acc_lst))
+                    with open(f'results/{arguments["current_model"]}test_top5acc_run{run + 1}.txt','w') as values:
+                        values.write(str(test_top5acc_lst))
+
             # if epoch has reached last epoch reset last_epoch variable to zero
             # to ensure that once we start another run we start at the first epoch
             # and not an epoch we held onto from continuing training

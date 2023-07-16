@@ -13,7 +13,8 @@ argument_list = [
   "nclasses",
   "batch_size",
   "nepochs",
-  "nruns"
+  "nruns",
+  "N"
 ]
 
 def train_model_with_args():

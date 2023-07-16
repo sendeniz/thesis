@@ -2,11 +2,12 @@ README.md
 setup.py
 application/__init__.py
 cells/__init__.py
-cells/hippo_cell.py
+cells/hippocell.py
 cells/rnncells.py
 loss/__init__.py
 loss/yolov3loss.py
 models/__init__.py
+models/hippo.py
 models/mlp.py
 models/rnn.py
 models/yolov4.py
