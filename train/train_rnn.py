@@ -135,13 +135,13 @@ def initialize_with_args(_arguments):
       arguments["init_hippornn"] = True
       arguments["lr"]= 0.00001
       arguments["current_model"]= model_names[3]
-      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}hippo_smnist.cpt'
+      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}_smnist.cpt'
       arguments["model_name"]= 'Simple Hippo'
     case "hippornn":
       arguments["init_hippornn"] = True
       arguments["lr"]= 0.00001
       arguments["current_model"]= model_names[4]
-      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}hippornn_smnist.cpt'
+      arguments["path_cpt_file"]= f'cpts/{arguments["current_model"]}rnn_smnist.cpt'
       arguments["model_name"]= 'Hippo Rnn'
 
   match arguments["dataset_name"]:
