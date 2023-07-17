@@ -493,18 +493,18 @@ def main(arguments):
                         values.write(str(test_top5acc_lst))
                 
                 if arguments['model_name'] in trains_hippo:
-                    with open(f'results/{arguments["current_model"]}train_loss_run{run + 1}.txt','w') as values:
+                    with open(f'results/{arguments["current_model"]}_train_loss_run{run + 1}.txt','w') as values:
                         values.write(str(train_loss_lst))
-                    with open(f'results/{arguments["current_model"]}train_top1acc_run{run + 1}.txt','w') as values:
+                    with open(f'results/{arguments["current_model"]}_train_top1acc_run{run + 1}.txt','w') as values:
                         values.write(str(train_top1acc_lst))
-                    with open(f'results/{arguments["current_model"]}train_top5acc_run{run + 1}.txt','w') as values:
+                    with open(f'results/{arguments["current_model"]}_train_top5acc_run{run + 1}.txt','w') as values:
                         values.write(str(train_top5acc_lst))
 
-                    with open(f'results/{arguments["current_model"]}test_loss_run{run + 1}.txt','w') as values:
+                    with open(f'results/{arguments["current_model"]}_test_loss_run{run + 1}.txt','w') as values:
                         values.write(str(test_loss_lst))
-                    with open(f'results/{arguments["current_model"]}test_top1acc_run{run + 1}.txt','w') as values:
+                    with open(f'results/{arguments["current_model"]}_test_top1acc_run{run + 1}.txt','w') as values:
                         values.write(str(test_top1acc_lst))
-                    with open(f'results/{arguments["current_model"]}test_top5acc_run{run + 1}.txt','w') as values:
+                    with open(f'results/{arguments["current_model"]}_test_top5acc_run{run + 1}.txt','w') as values:
                         values.write(str(test_top5acc_lst))
 
             # if epoch has reached last epoch reset last_epoch variable to zero
